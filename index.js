@@ -1,27 +1,53 @@
-const {
-  Client, 
-  Attachment, 
-  RichEmbed
-} = require('discord.js');
+/*
+Warrior Gaming Discord Bot
+Made by Rigoberto "Rygol" Gort
+Last Updated: 3/23/2020
+*/
 
-const bot = new Client();
+// Require discord.js
+const Discord = require('discord.js');
 
+// Discord.js Client (Bot)
+const bot = new Discord.Client({
+  disableEveryone: true
+});
+
+// Indicates the bot version based on patches/updates/changes.
+var version = '1.0.3';
+
+// Setups up the required command prefix in order to operate the bot.
+const PREFIX = '`';
+
+// Required for muting a player for xyz amount of time.
+const ms = require('ms');
+
+// Required for streaming music with the bot.
 const ytdl = require("ytdl-core");
 
-const token = '';
+// Token for bot to operate via API system.
+const token = 'NTk4MjI0MjEwNjIzNTk0NTE4.XemKBw.WcJe5l-gN8xnn-nzj-YmkZ3lKyM';
 
-const PREFIX = '!';
+// Collection for all commands.
+bot.commands = new Discord.Collection();
 
-var version = '1.0.2';
+// Setups and reads all the files within the collection for the bots commands.
+const fs = require('fs');
+
+const commandFiles = fs.readdirSync('./commands/').filter(file => file.endsWith('.js'));
+for(const file of commandFiles){
+  const command = require(`./commands/${file}`);
+
+  bot.commands.set(command.name, command)
+}
 
 const usedCommandRecently = new Set();
 
 var servers = {};
 
-// Terminal Notification that the bot is Online!
+// Terminal Notification that the bot is online!
 bot.on('ready', () =>{
-  console.log('This bot is online!');
-  bot.user.setActivity('Pokemon - Red Version', { type: "PLAYING" }).catch(console.error);
+  console.log(`${bot.user.username} is online on ${bot.guilds.size} server!`);
+  bot.user.setActivity('Escape From Tarkov', { type: "PLAYING" }).catch(console.error);
 })
 
 // Server Greeting for New Members
@@ -39,59 +65,62 @@ bot.on('message', message=>{
 
   switch(args[0]){
     case 'ping':
-      //message.reply('pong!'); //If we want the bot to respond to a specific person that commenced the command
-      message.channel.sendMessage('pong!'); //If we want the bot to respond without adding the @ for the user.
+      bot.commands.get('ping').execute(message, args);
       break;
 
     // Sends user the link for the YouTube channel of the guild/community/group.
     case 'youtube':
-      message.channel.sendMessage('https://www.youtube.com/warriorbambino')
+      bot.commands.get('youtube').execute(message, args);
       break;
 
-    // Allows users to play music in their voice channel.
+    /*// Allows users to play music in their voice channel.
     case 'play':
-        function play(connection, message){
-          var server = servers[message.guild.id];
-
-          server.dispatcher = connection.playStream(ytdl(server.queue[0], {filter: "audioonly"}));
-
-          // Shifts the bot music player into the next song in the queue.
-          server.queue.shift();
-
-          server.dispatcher.on("end", function() {
-            if(server.queue[0]){
-              play(connection, message);
-            } else{
-              connection.dispatcher();
-            }
-          });
-        }
-
-        if(!args[1]){
-          messsage.channel.send("You need to provide a link for the song you want played!");
-          return;
-        }
-
-        if(!message.member.voiceChannel){
-          message.channel.send("You must be in a voice channel to play the bot!");
-          return;
-        }
-
-        if(!servers[message.guild.id]) servers[message.guild.id] = {
-          queue: []
-        }
-
-        var server = servers[message.guild.id];
-
-        server.queue.push(args[1]);
-
-        if(!message.guild.voiceConnection) message.member.voiceChannel.join().then(function(connection){
-          play(connection, message);
-        })
-
+      bot.commands.get('play').execute(message, args, servers, ytdl);
       break;
 
     case 'skip':
+      bot.commands.get('skip').execute(message, args, servers);
+      break;
+
+    case 'pause':
+      bot.commands.get('pause').execute(message, args, servers);
+      break;
+
+    case 'resume':
+      bot.commands.get('resume').execute(message, args, servers);
+      break;
+
+    case 'leave':
+      bot.commands.get('leave').execute(message, args, servers);
+      break;*/
+
+    // Allows the user to create a temporary mute timelapse on a specific user within the Discord server.
+    case 'mute':
+      let person = message.guild.member(message.mentions.users.first() || message.guild.members.get(args[1]))
+      if(!person) return message.reply("Unable to mute the indicated person as they do not exist.");
+
+      let mainrole = message.guild.roles.find(role => role.name === "Newbie");
+      let muterole = message.guild.roles.find(role => role.name === "mute");
+
+      if(!muterole) return message.reply("Unable to locate the mute role within this Discord server.");
+
+      let time = args[2];
+
+      if(!time){
+        return message.reply("You didn't specify a time!");
+      }
+
+      person.removeRole(mainrole.id);
+      person.addRole(muterole.id);
+
+      message.channel.send(`@${person.user.tag} has now been muted for ${ms(ms(time))}`);
+
+      setTimeout(function(){
+        person.addRole(mainrole.id);
+        person.removeRole(muterole.id);
+        message.channel.send(`@${person.user.tag} has been unmuted!`)
+      }, ms(time));
+
       break;
 
     // Sends user list of available commands for the bot within the Discord channel they requested it.
@@ -214,6 +243,36 @@ bot.on('message', message=>{
       .setFooter('Subscribe to my YouTube!')
       .setColor(0x48C9B0)
       message.channel.sendEmbed(embed);
+      break;
+
+    case 'help':
+      const HelpEmbed = new RichEmbed()
+        .setTitle("Helper Embed")
+        .setColor(0xFF0000)
+        .setDescription("The following are a list of commands available to you within the Warrior Gaming Server:");
+
+        messsage.author.send(HelpEmbed);
+      break;
+
+    case 'poll':
+        const PollEmbed = new RichEmbed()
+        .setColor(0xFFC300)
+        .setTitle("Initiate Poll")
+        .setDescription("!poll to initiate a simple yes or no poll");
+
+        if(!args[1]){
+          message.channel.send(PollEmbed);
+          break;
+        }
+
+        let msgArgs = args.slice(1).join(" ");
+
+        message.channel.send("🗳️ " + "**" + msgArgs + "**").then(messageReaction => {
+          messageReaction.react("👍");
+          messageReaction.react("👎");
+          message.delete(2000).catch(console.error);
+        });
+
       break;
   }
 })
