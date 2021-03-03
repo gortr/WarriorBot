@@ -9,7 +9,7 @@ require('dotenv').config();
 
 // Imports necessary Discord components for the Bot to function accordingly.
 // Sets up initial parameters for Bot usage.
-const { Client, WebHookClient, WebhookClient } = require('discord.js');
+const { Discord, Client, WebHookClient, WebhookClient, DiscordAPIError, Collection } = require('discord.js');
 const bot = new Client({
     partials: ['MESSAGE', 'REACTION']
 });
@@ -17,8 +17,18 @@ const webhookClient = new WebhookClient(
     process.env.WEBHOOK_ID,
     process.env.WEBHOOK_TOKEN,
 );
-const PREFIX = "`";
-var version = '1.0.1c';
+var version = '1.0.1c';   // Provides the Bot current version if requested by a User.
+const PREFIX = "`";   // The intended prefix usaed for Bot commands within a server.
+const fs = require('fs');   // Allows access to files and folders within the directory.
+bot.commands = new Collection();   // Collection for all commands.
+
+// Provides access to a commands directory for the Bot to access for commands processing.
+const commandFiles = fs.readdirSync('./commands/').filter(file => file.endsWith('.js'));
+for(const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+  bot.commands.set(command.name, command);
+}
+
 
 
 
@@ -42,16 +52,28 @@ bot.on('guildMemberAdd', member => {
 // BOT SERVER COMMANDS LISTING FOR USERS OR DEVELOPERS
 // Handles commands made to the Bot in order to process them per the User utilizing them.
 bot.on('message', async (message) => {
-    if(!message.content.startsWith(PREFIX) || message.author.bot) return;
-    if(message.content.startsWith(PREFIX)) {
+    if(!message.content.startsWith(PREFIX) || message.author.bot) return;   // Checks to confirm that the command is structure correctly and is not being requested by the Bot.
+    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+    
+    /*if(message.content.startsWith(PREFIX)) {
         const [CMD_NAME, ...args] = message.content // Retrieves command used by User and all arguements following the command instead of just the one after it.
             .trim()
             .substring(PREFIX.length)
             .split(/\s+/);
+    }*/
+
+    if (!bot.commands.has(command)) {
+    }
+    try {
+        bot.commands.get(command).execute(message, args);
+    } catch (error) {
+        console.error(error);
+        message.reply('There was an issue executing that command! It may be an invalid command.');
     }
 
     // Contains full list of Bot commands executable by the Bot per the Users requests.
-    if(CMD_NAME === 'ping'){   // Sends user Pong response to their Ping command.
+    /*if(CMD_NAME === 'ping'){   // Sends user Pong response to their Ping command.
         bot.commands.get('ping').execute(message, args);
     } else if (CMD_NAME === 'youtube') {   // Sends user the link for the YouTube channel of the guild/community/group.
         bot.commands.get('youtube').execute(message, args);
@@ -205,18 +227,18 @@ bot.on('message', async (message) => {
         webhookClient.send(msg);
     } else {   // If a command is not listed above, then the User will be provided with the following error message.
         message.channel.send("I'm sorry, that is an invalid command.");
-    }
+    }*/
 });
 
 
 
 // Allows Bot to respond to users who say hello or Hello.
-bot.on('message', (message) => {
+/*bot.on('message', (message) => {
     console.log(`[${message.author.tag}]: ${message.content}`);
     if(message.content === 'hello' || 'Hello'){
         message.channel.send('Hello there!');
     }
-});
+});*/
 
 
 

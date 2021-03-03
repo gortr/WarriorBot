@@ -1,18 +1,19 @@
 {
   "name": "warrior-gaming-bot",
-  "version": "1.0.0",
+  "version": "1.0.3c",
   "description": "The Warrior Gaming Official Discord Server Bot!",
-  "main": "index.js",
+  "main": "bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./src/bot.js",
-    "dev": "nodemon ./src/bot.js"
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
   },
   "keywords": [],
   "author": "Rigoberto J Gort",
   "license": "ISC",
   "dependencies": {
     "discord.js": "^12.5.1",
-    "dotenv": "^8.2.0"
+    "dotenv": "^8.2.0",
+    "fs": "0.0.1-security"
   }
 }
